@@ -1,0 +1,55 @@
+[tool.poetry]
+name = "drf-pydantic-openapi"
+version = "0.1.0"
+description = ""
+authors = ["iKlotho <umutkahrimanedu@gmail.com>"]
+readme = "README.md"
+packages = [{include = "drf_pydantic_openapi"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+django = "^3.2.1"
+djangorestframework = "^3.14.0"
+openapi-schema-pydantic = "^1.2.4"
+docstring-parser = "^0.15"
+jsonpath-ng = "^1.5.3"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.3.0"
+isort = "^5.12.0"
+flake8 = "^6.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+include = ['drf_pydantic_openapi/templates/*']
+
+
+[tool.flake8]
+max-line-length = 120
+max-complexity = 18
+exclude = [
+    # No need to traverse our git directory
+    ".git",
+    # There's no value in checking cache directories
+    "__pycache__",
+    # No need to traverse virtual environments
+    "venv",
+    ".venv",
+    # No need to traverse migration files
+    "migrations",
+    # No need to traverse test files
+    "tests",
+    # No need to traverse contants files
+    "constants.py",
+]
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.black]
+line-length = 120
+target-version = ['py37']
