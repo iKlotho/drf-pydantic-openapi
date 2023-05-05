@@ -27,19 +27,12 @@ from rest_framework.schemas.generators import BaseSchemaGenerator
 
 from .utils import (
     Docstring,
+    ParameterLocation,
     extend_openapi,
     get_builtin_type,
 )
 
 RESPONSES = {v: v.phrase for v in HTTPStatus.__members__.values()}
-
-
-class ParameterLocation(str, Enum):
-    PATH = "path"
-    QUERY = "query"
-    HEADER = "header"
-    COOKIE = "cookie"
-    BODY = "body"
 
 
 @dataclass
@@ -74,14 +67,7 @@ class Document(BaseSchemaGenerator):
         handler_signature = inspect.signature(view_func)
         return_type = handler_signature.return_annotation
         if return_type is not inspect._empty:
-            if hasattr(return_type, "ref_source"):
-                print("REF", f"#/components/schemas/{return_type._ref_source}_{return_type._ref_model_name}")
-                ref_obj = Reference(ref=f"#/components/schemas/{return_type._ref_source}_{return_type._ref_model_name}")
-                response["200"] = Response(
-                    description="",
-                    content={"application/json": {"schema": ref_obj}},
-                )
-            elif isclass(return_type) and issubclass(return_type, BaseModel):
+            if isclass(return_type) and issubclass(return_type, BaseModel):
                 schema = PydanticSchema(schema_class=return_type)
                 response["200"] = Response(
                     description="",
@@ -91,67 +77,36 @@ class Document(BaseSchemaGenerator):
                 print("No type found")
         return response
 
-    def generate_operation(self, path, method, view):
+    def generate_operation(self, path: str, method: str, view) -> Operation | None:
         try:
             view_func = getattr(view, method.lower())
         except AttributeError:
+            print(f"{str(view)} object has no attribute {method}")
             return
+
         request_body = None
+
         docs = getattr(view_func, "docs_metadata", None)
         docstring = getattr(view_func, "__doc__", None)
         docstring = Docstring(docstring) if docstring else None
+
         if method.lower() in ("put", "patch", "post"):
             if docs and isclass(docs.body) and issubclass(docs.body, BaseModel):
                 schema = PydanticSchema(schema_class=docs.body)
                 request_body = RequestBody(content={"application/json": MediaType(schema=schema)})
+
         parameters = []
-        if docs and isclass(docs.query) and issubclass(docs.query, BaseModel):
-            # schema = PydanticSchema(schema_class=docs.query)
-            for name, field in docs.query.__fields__.items():
-                type_ = field.type_
-                if issubclass(type_, BaseModel):
-                    schema = PydanticSchema(schema_class=type_)
-                else:
-                    schema = Schema(type=get_builtin_type(type_))
-
-                description = field.field_info.description
-
-                parameter = Parameter(
-                    name=field.name,
-                    description=description if description else "",
-                    param_in=ParameterLocation.QUERY,
-                    param_schema=schema,
-                    required=field.required,
-                )
-                parameters.append(parameter)
-
-        if docs and isclass(docs.path) and issubclass(docs.path, BaseModel):
-            for name, field in docs.path.__fields__.items():
-                type_ = field.type_
-                if issubclass(type_, BaseModel):
-                    schema = PydanticSchema(schema_class=type_)
-                else:
-                    schema = Schema(type=get_builtin_type(type_))
-
-                description = field.field_info.description
-
-                parameter = Parameter(
-                    name=field.name,
-                    description=description if description else "",
-                    param_in=ParameterLocation.PATH,
-                    param_schema=schema,
-                    required=field.required,
-                )
-                parameters.append(parameter)
+        if docs and (path_param := docs.generate_parameter(ParameterLocation.PATH)):
+            parameters.append(path_param)
+        if docs and (query_param := docs.generate_parameter(ParameterLocation.QUERY)):
+            parameters.append(query_param)
 
         path_name = path.replace("/", "_")
-        operation_id = f"{method.lower()}_{path_name}_operation"
-        response = self.generate_response(view_func)
 
         return Operation(
-            operation_id=operation_id,
+            operation_id=f"{method.lower()}_{path_name}_operation",
             requestBody=request_body,
-            responses=response,
+            responses=self.generate_response(view_func),
             summary=docstring.short_description if docstring else "",
             description=docstring.long_description if docstring else "",
             parameters=parameters,

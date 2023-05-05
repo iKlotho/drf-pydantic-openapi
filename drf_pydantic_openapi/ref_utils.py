@@ -1,8 +1,11 @@
+from collections import OrderedDict
 import re
 
 from pydantic import BaseModel, Extra, Field, PrivateAttr, create_model
 from pydantic.dataclasses import dataclass
-from .utils import add_source_name_to_ref
+
+from drf_pydantic_openapi.ref_source import Component
+from .utils import add_source_name_to_ref, extract_ref_source
 from typing import ClassVar, Type
 from jsonpath_ng import jsonpath, parse
 from typing import Iterable
@@ -17,18 +20,23 @@ def delete_key_from_dict(obj: dict, key: str):
     """
     keys = key.split(".")
     last = keys.pop()
+    if "properties" in obj.keys():
+        obj = obj["properties"]
+
     for key in keys:
         if isinstance(obj, dict):
             if key in obj:
                 obj = obj[key]
-
-    if isinstance(obj, dict):
-        obj.pop(last, None)
+        if "properties" in obj.keys():
+            obj = obj["properties"]
 
     if isinstance(obj, Iterable):
         for ele in obj:
             if isinstance(ele, dict):
                 ele.pop(last, None)
+
+    if isinstance(obj, dict):
+        obj.pop(last, None)
 
 
 def resolve_schema(schema_: dict, model: str):
@@ -45,7 +53,7 @@ class RefTypeFactory:
         We can call $ref to this model within our newly created type
         """
 
-        model_name = f"{source}_{name}"
+        model_name = f"{name}"
 
         class Base(BaseModel):
             _ref_source: ClassVar[str] = source
@@ -69,42 +77,44 @@ class RefTypeFactory:
                         for val in model_config.ref_rename:
                             rename_fields.add(val)
 
-                    props = schema["properties"]
-                    ref_model_name = f"{model._ref_source}_{model._ref_model_name}"
-                    if schema_ := config.get_source(model._ref_source):
-                        print("EXTENDING model", ref_model_name)
-                        print("schema_", schema_)
-                        ref_obj = schema_.get(ref_model_name, {}).get("properties", {})
-                        for schema_name, schema_value in schema_.items():
-                            print(f"new name {model.__name__}_{schema_name}")
-                            schema[f"{model.__name__}_{schema_name}"] = schema_value
+                    properties = schema["properties"]
+                    # Find the reference source schema
+                    if ref_source := config.get_source(model._ref_source):
+                        # Copy ref component to modify as we need
+                        ref_component = ref_source.components_[model._ref_model_name]
+                        if not isinstance(ref_component, dict):
+                            print("Cant extend str model")
+                            return
 
-                        # REMOVE fields set exclude
+                        ref_component = ref_component.copy()
+                        ref_properties = ref_component.get("properties", {})
+
                         for field in exclude_fields:
-                            print("Excluding the val", field)
-                            delete_key_from_dict(ref_obj, field)
+                            print(f"Deleting the field", field, "ref", ref_properties)
+                            delete_key_from_dict(ref_properties, field)
 
-                        # RENAME field
                         for rename_obj in rename_fields:
                             original_name, new_name = rename_obj
-                            if original_value := ref_obj.pop(original_name, None):
-                                print("rog", original_value, new_name)
-                                original_value["title"] = new_name
-                                ref_obj[new_name] = original_value
+                            if original_value := ref_properties.pop(original_name, None):
+                                original_value["title"] = " ".join(p.capitalize() for p in new_name.split("_"))
+                                ref_properties[new_name] = original_value
 
                         # OVERRIDE
                         # Remove same fields from ref obj to allow override
                         for field in model.__fields__:
-                            ref_obj.pop(field, None)
+                            ref_properties.pop(field, None)
 
-                        props.update(**ref_obj)
-                        print("schema", schema_.get(ref_model_name))
+                        properties.update(**ref_properties)
+                        # Sort properties by key
+                        schema["properties"] = OrderedDict(sorted(properties.items(), key=lambda t: t[0]))
+
                     else:
-                        print(f"Couldnt extend the model. Ref name: {ref_model_name}")
+                        print(
+                            f"Couldnt extend the model. Ref name: {model._ref_model_name}, source: {model._ref_source}"
+                        )
 
         model = create_model(model_name, __base__=Base)
 
-        model
         return type(
             model_name,
             (model,),

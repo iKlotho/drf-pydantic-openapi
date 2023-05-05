@@ -10,7 +10,7 @@ class Config(BaseModel):
     def get_source(self, name: str) -> RefSource | None:
         """Find source by given source name"""
         if ref_source := self.ref_sources.get(name):
-            return ref_source.schemas_
+            return ref_source
 
 
 USER_SETTINGS = getattr(settings, "DRF_PYDANTIC_OPENAPI", {"REF_SOURCES": {}})
