@@ -54,8 +54,8 @@ class BookView(ApiView):
 # Using the `@docs`
 
 - Parameters
-    - body: Desied json body model
-    - errors: List of pydantic models will be returned on error
+    - body: Request body model
+    - errors: List of error models
     - query: Query model
     - path: Api path parameter model
     
@@ -67,7 +67,7 @@ class RetrieveQuery(BaseModel):
     book_id: str
     
 class Path(BaseModel):
-    snippet_id: str = Field(description="Snippet id to retrieve")
+    book_id: str = Field(description="Book id to retrieve")
 
 
 class BookView(ApiView):
