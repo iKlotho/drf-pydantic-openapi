@@ -1,19 +1,15 @@
 import inspect
 from collections import defaultdict
 from dataclasses import dataclass
-from enum import Enum
-from http import HTTPStatus
 from inspect import isclass
-from typing import NamedTuple, Type, get_args, get_origin
+from typing import NamedTuple
 
 from openapi_schema_pydantic import (
     Info,
     MediaType,
     OpenAPI,
     Operation,
-    Parameter,
     PathItem,
-    Reference,
     RequestBody,
     Response,
     Schema,
@@ -25,26 +21,17 @@ from openapi_schema_pydantic.util import (
 from pydantic import BaseModel
 from rest_framework.schemas.generators import BaseSchemaGenerator
 
-from .utils import (
-    Docstring,
-    ParameterLocation,
-    extend_openapi,
-    get_builtin_type,
-)
-
-RESPONSES = {v: v.phrase for v in HTTPStatus.__members__.values()}
+from .utils import Docstring, ParameterLocation
 
 
 @dataclass
 class Path:
+    """
+        Container for application api paths
+    """
     name: str
     method: str
     view: callable
-
-
-class ResponseInfo(NamedTuple):
-    schema: Schema
-    description: str | None
 
 
 class Document(BaseSchemaGenerator):
@@ -52,6 +39,13 @@ class Document(BaseSchemaGenerator):
         self.inspector = None
         self.openapi = OpenAPI(info=Info(title="test", version="3.0.0"), paths={})
         self.responses = {}
+        self.method_mapping = {
+            "get": "retrieve",
+            "post": "create",
+            "put": "update",
+            "patch": "partial_update",
+            "delete": "destroy",
+        }
         super().__init__(*args, **kwargs)
 
     def generate_response(self, view_func):
@@ -78,9 +72,10 @@ class Document(BaseSchemaGenerator):
         return response
 
     def generate_operation(self, path: str, method: str, view) -> Operation | None:
-        try:
-            view_func = getattr(view, method.lower())
-        except AttributeError:
+        method = method.lower()
+        view_func = getattr(view, method, getattr(view, self.method_mapping[method], None))
+
+        if not view_func:
             print(f"{str(view)} object has no attribute {method}")
             return
 
@@ -104,7 +99,7 @@ class Document(BaseSchemaGenerator):
         path_name = path.replace("/", "_")
 
         return Operation(
-            operation_id=f"{method.lower()}_{path_name}_operation",
+            operation_id=f"{method}_{path_name}_operation",
             requestBody=request_body,
             responses=self.generate_response(view_func),
             summary=docstring.short_description if docstring else "",
@@ -115,6 +110,7 @@ class Document(BaseSchemaGenerator):
     def generate_docs(self, paths: list[Path]):
         docs = PathItem()
         for path in paths:
+            print(f"{path=}")
             if operation := self.generate_operation(path.name, path.method, path.view):
                 setattr(docs, path.method.lower(), operation)
         return docs
@@ -131,5 +127,4 @@ class Document(BaseSchemaGenerator):
             self.openapi.paths[path] = docs
 
         self.openapi = construct_open_api_with_schema_class(self.openapi)
-        self.openapi = extend_openapi(self.openapi)
         return self.openapi.json(by_alias=True, exclude_none=True)

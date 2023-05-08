@@ -1,13 +1,13 @@
 import builtins
-from enum import Enum
 import re
+from enum import Enum
+from inspect import isclass
 from typing import Type
 
 import docstring_parser
-from pydantic import BaseModel
+from openapi_schema_pydantic import Parameter, Schema
 from openapi_schema_pydantic.util import PydanticSchema
-from openapi_schema_pydantic import Schema, Parameter
-from inspect import isclass
+from pydantic import BaseModel
 
 from .errors import HttpError
 
@@ -54,7 +54,7 @@ class DocsMetadata:
             raise Exception("Invalid parameter location!")
 
         if data and isclass(data) and issubclass(data, BaseModel):
-            for name, field in data.__fields__.items():
+            for _, field in data.__fields__.items():
                 type_ = field.type_
                 if issubclass(type_, BaseModel):
                     schema = PydanticSchema(schema_class=type_)
@@ -100,48 +100,10 @@ class Docstring:
         return ""
 
 
-def find_schema(source: str, name: str):
-    from .settings import config
-
-    for ref_source in config.ref_sources:
-        if ref_source.name == source:
-            for k, v in ref_source.schemas.items():
-                if k == f"{source}_{name}":
-                    return v
-
-
-def extract_ref_source(ref):
+def extract_ref_source(ref: str):
+    # Find the ref name
     pattern = r"#/components/schemas/(\w+)"
     match = re.search(pattern, ref)
     if match:
         model_name = match.group(1)
         return model_name
-
-
-def replace_ref_source(ref, source):
-    pattern = r'"\$ref":\s*"#/components/schemas/(\w+)"'
-    match = re.search(pattern, ref)
-    if match:
-        model_name = match.group(1)
-        new_model_name = f"{source}_{model_name}"
-        if source not in ref:
-            return ref.replace(model_name, new_model_name)
-
-    return ref
-
-
-def add_source_name_to_ref(source: str, name: str):
-    if source in name:
-        return name
-    return f"{source}_{name}"
-
-
-def extend_openapi(open_api):
-    from .settings import config
-
-    new_open_api = open_api.copy(deep=True)
-    if new_open_api.components:
-        for ref_source in config.ref_sources.values():
-            new_open_api.components.schemas.update(**ref_source.fetch_custom_components())
-
-    return new_open_api

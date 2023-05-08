@@ -1,15 +1,10 @@
-from collections import OrderedDict
 import re
+from collections import OrderedDict
+from typing import ClassVar, Iterable, Type
 
-from pydantic import BaseModel, Extra, Field, PrivateAttr, create_model
-from pydantic.dataclasses import dataclass
+from pydantic import BaseModel, create_model
 
-from drf_pydantic_openapi.ref_source import Component
-from .utils import add_source_name_to_ref, extract_ref_source
-from typing import ClassVar, Type
-from jsonpath_ng import jsonpath, parse
-from typing import Iterable
-from copy import deepcopy
+from .settings import config
 
 
 def delete_key_from_dict(obj: dict, key: str):
@@ -39,21 +34,13 @@ def delete_key_from_dict(obj: dict, key: str):
         obj.pop(last, None)
 
 
-def resolve_schema(schema_: dict, model: str):
-    # Extract model and its rrefs
-    if model in schema_:
-        pass
-
-
 class RefTypeFactory:
     def __call__(self, source: str, name: str) -> Type:
         """
-        Create new pydantic object with a name that has source prefix
-        Since source ref models will be in a following format source_MODEL
-        We can call $ref to this model within our newly created type
+        Create a pydantic model to reference other source of openapi definitionts.
+        `schema_extra` method will be called when the pydantic converts the object to json schema.
+        With this method new keys can be added to result
         """
-
-        model_name = f"{name}"
 
         class Base(BaseModel):
             _ref_source: ClassVar[str] = source
@@ -62,8 +49,6 @@ class RefTypeFactory:
             class Config:
                 @staticmethod
                 def schema_extra(schema: dict, model) -> None:
-                    from .settings import config
-
                     exclude_fields = set()
                     rename_fields = set()
 
@@ -80,17 +65,15 @@ class RefTypeFactory:
                     properties = schema["properties"]
                     # Find the reference source schema
                     if ref_source := config.get_source(model._ref_source):
-                        # Copy ref component to modify as we need
                         ref_component = ref_source.components_[model._ref_model_name]
                         if not isinstance(ref_component, dict):
-                            print("Cant extend str model")
+                            print(f"Cant extend type: {type(ref_component)}")
                             return
 
                         ref_component = ref_component.copy()
                         ref_properties = ref_component.get("properties", {})
 
                         for field in exclude_fields:
-                            print(f"Deleting the field", field, "ref", ref_properties)
                             delete_key_from_dict(ref_properties, field)
 
                         for rename_obj in rename_fields:
@@ -105,7 +88,7 @@ class RefTypeFactory:
                             ref_properties.pop(field, None)
 
                         properties.update(**ref_properties)
-                        # Sort properties by key
+                        # Sort properties by key, can be removed
                         schema["properties"] = OrderedDict(sorted(properties.items(), key=lambda t: t[0]))
 
                     else:
@@ -113,10 +96,10 @@ class RefTypeFactory:
                             f"Couldnt extend the model. Ref name: {model._ref_model_name}, source: {model._ref_source}"
                         )
 
-        model = create_model(model_name, __base__=Base)
+        model = create_model(name, __base__=Base)
 
         return type(
-            model_name,
+            name,
             (model,),
             {},
         )

@@ -1,16 +1,10 @@
 from collections import defaultdict
-from pydantic import Field
-import json
-import re
+
 import requests
-from .utils import add_source_name_to_ref, extract_ref_source
+from pydantic import Field
 from pydantic.dataclasses import dataclass
 
-
-@dataclass
-class Component:
-    name: str
-    schema_: dict
+from .utils import extract_ref_source
 
 
 @dataclass
@@ -19,7 +13,6 @@ class RefSource:
     url: str
     schemas_: dict = Field(default={}, repr=False)
     components_: dict = Field(default={}, repr=False)
-    custom_components: list[Component] = Field(default=[], repr=False)
 
     def __post_init__(self):
         r = requests.get(self.url)
@@ -31,6 +24,7 @@ class RefSource:
             self.components_.setdefault(k, v)
 
     def extend_refs(self, data: dict):
+        # Replace $refs with definition
         if "properties" in data.keys():
             for k, v in data["properties"].items():
                 comp = v
@@ -47,9 +41,3 @@ class RefSource:
                             data["properties"][k]["items"] = ref_obj
                         else:
                             data["properties"][k] = ref_obj
-
-    def register_new_component(self, component: Component):
-        self.custom_components.append(component)
-
-    def fetch_custom_components(self) -> dict:
-        return {component.name: component.schema_ for component in self.custom_components}

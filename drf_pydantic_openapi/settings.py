@@ -1,6 +1,6 @@
 from django.conf import settings
+from pydantic import BaseModel, Field
 
-from pydantic import BaseModel, Field, validator
 from .ref_source import RefSource
 
 
