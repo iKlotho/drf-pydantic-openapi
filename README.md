@@ -1,3 +1,5 @@
+Document DRF code with pydantic models. Supports referencing other service's components.
+
 # Usage
 
 # Reference another openapi source
@@ -9,7 +11,7 @@ Add the following setting to your projects `settings.py`. This will allow the mo
 DRF_PYDANTIC_OPENAPI = {
     "REF_SOURCES": {
         "service_B": "http://localhost:8000/openapi",
-        "service_C": "http://localhost:800r/openapi",
+        "service_C": "http://localhost:8001/openapi",
     }
 }
 ```
