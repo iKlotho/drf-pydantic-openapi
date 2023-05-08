@@ -1,8 +1,13 @@
 import builtins
 import re
+from enum import Enum
+from inspect import isclass
 from typing import Type
 
 import docstring_parser
+from openapi_schema_pydantic import Parameter, Schema
+from openapi_schema_pydantic.util import PydanticSchema
+from pydantic import BaseModel
 
 from .errors import HttpError
 
@@ -18,6 +23,14 @@ def get_builtin_type(ty: Type):
     return _builtin_openapi_map.get(ty)
 
 
+class ParameterLocation(str, Enum):
+    PATH = "path"
+    QUERY = "query"
+    HEADER = "header"
+    COOKIE = "cookie"
+    BODY = "body"
+
+
 class DocsMetadata:
     def __init__(
         self,
@@ -30,6 +43,33 @@ class DocsMetadata:
         self.body = body
         self.query = query
         self.path = path
+
+    def generate_parameter(self, parameter_location: ParameterLocation):
+        data = None
+        if parameter_location == ParameterLocation.QUERY:
+            data = self.query
+        elif parameter_location == ParameterLocation.PATH:
+            data = self.path
+        else:
+            raise Exception("Invalid parameter location!")
+
+        if data and isclass(data) and issubclass(data, BaseModel):
+            for _, field in data.__fields__.items():
+                type_ = field.type_
+                if issubclass(type_, BaseModel):
+                    schema = PydanticSchema(schema_class=type_)
+                else:
+                    schema = Schema(type=get_builtin_type(type_))
+
+                description = field.field_info.description
+
+                return Parameter(
+                    name=field.name,
+                    description=description if description else "",
+                    param_in=parameter_location,
+                    param_schema=schema,
+                    required=field.required,
+                )
 
 
 def docs(
@@ -60,40 +100,10 @@ class Docstring:
         return ""
 
 
-def find_schema(source: str, name: str):
-    from .settings import config
-
-    for ref_source in config.ref_sources:
-        if ref_source.name == source:
-            for k, v in ref_source.schemas.items():
-                if k == f"{source}_{name}":
-                    return v
-
-
-def replace_ref_source(ref, source):
-    pattern = r'"\$ref":\s*"#/components/schemas/(\w+)"'
+def extract_ref_source(ref: str):
+    # Find the ref name
+    pattern = r"#/components/schemas/(\w+)"
     match = re.search(pattern, ref)
     if match:
         model_name = match.group(1)
-        new_model_name = f"{source}_{model_name}"
-        if source not in ref:
-            return ref.replace(model_name, new_model_name)
-
-    return ref
-
-
-def add_source_name_to_ref(source: str, name: str):
-    if source in name:
-        return name
-    return f"{source}_{name}"
-
-
-def extend_openapi(open_api):
-    from .settings import config
-
-    new_open_api = open_api.copy(deep=True)
-    if new_open_api.components:
-        for ref_source in config.ref_sources.values():
-            new_open_api.components.schemas.update(**ref_source.schemas_)
-
-    return new_open_api
+        return model_name
