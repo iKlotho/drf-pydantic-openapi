@@ -30,7 +30,7 @@ class BookView(ApiView):
 
 # More complex example
 
-class CustomBookModel(RefType("service_b", "BookModel")):
+class CustomBookModel(RefType("service_B", "BookModel")):
     # add new field
     read_count: int
     
