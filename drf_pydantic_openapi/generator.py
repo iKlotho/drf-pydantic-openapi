@@ -2,7 +2,7 @@ import inspect
 from collections import defaultdict
 from dataclasses import dataclass
 from inspect import isclass
-from typing import NamedTuple
+from typing import NamedTuple, Type
 
 from openapi_schema_pydantic import (
     Info,
@@ -27,8 +27,9 @@ from .utils import Docstring, ParameterLocation
 @dataclass
 class Path:
     """
-        Container for application api paths
+    Container for application api paths
     """
+
     name: str
     method: str
     view: callable
@@ -48,13 +49,17 @@ class Document(BaseSchemaGenerator):
         }
         super().__init__(*args, **kwargs)
 
-    def generate_response(self, view_func):
+    def generate_responses(self, docstring, view_func):
         response = {}
         docs = getattr(view_func, "docs_metadata", None)
         if docs:
             for error in docs.errors:
+                print("error", error)
+                description = ""
+                if raises := docstring.raises.get(error.__name__):
+                    description = raises.description
                 response[error.status_code] = Response(
-                    description="",
+                    description=description,
                     content={"application/json": MediaType(schema=error.schema())},
                 )
 
@@ -63,8 +68,11 @@ class Document(BaseSchemaGenerator):
         if return_type is not inspect._empty:
             if isclass(return_type) and issubclass(return_type, BaseModel):
                 schema = PydanticSchema(schema_class=return_type)
+                description = ""
+                if returns := docstring.returns.get(error.__name__):
+                    description = returns.description
                 response["200"] = Response(
-                    description="",
+                    description=description,
                     content={"application/json": MediaType(schema=schema)},
                 )
             else:
@@ -101,7 +109,7 @@ class Document(BaseSchemaGenerator):
         return Operation(
             operation_id=f"{method}_{path_name}_operation",
             requestBody=request_body,
-            responses=self.generate_response(view_func),
+            responses=self.generate_responses(docstring, view_func),
             summary=docstring.short_description if docstring else "",
             description=docstring.long_description if docstring else "",
             parameters=parameters,
