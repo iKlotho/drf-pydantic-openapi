@@ -1,4 +1,4 @@
-Document DRF code with pydantic models. Supports referencing other service's components.
+Generate OpenAPI schema with DRF code using pydantic models. Supports referencing other service's components.
 
 # Usage
 
