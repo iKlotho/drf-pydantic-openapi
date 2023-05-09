@@ -51,25 +51,27 @@ class Document(BaseSchemaGenerator):
 
     def generate_responses(self, docstring, view_func):
         response = {}
+        handler_signature = inspect.signature(view_func)
+        return_type = handler_signature.return_annotation
         docs = getattr(view_func, "docs_metadata", None)
         if docs:
+            if response_model := docs.response:
+                return_type = response_model
+
             for error in docs.errors:
-                print("error", error)
                 description = ""
-                if raises := docstring.raises.get(error.__name__):
+                if docstring and (raises := docstring.raises.get(error.__name__)):
                     description = raises.description
                 response[error.status_code] = Response(
                     description=description,
                     content={"application/json": MediaType(schema=error.schema())},
                 )
 
-        handler_signature = inspect.signature(view_func)
-        return_type = handler_signature.return_annotation
         if return_type is not inspect._empty:
             if isclass(return_type) and issubclass(return_type, BaseModel):
                 schema = PydanticSchema(schema_class=return_type)
                 description = ""
-                if returns := docstring.returns.get(error.__name__):
+                if docstring and (returns := docstring.returns.get(error.__name__)):
                     description = returns.description
                 response["200"] = Response(
                     description=description,

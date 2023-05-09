@@ -35,14 +35,16 @@ class DocsMetadata:
     def __init__(
         self,
         errors: list[HttpError | Type[HttpError]] | None = None,
-        body=None,
-        query=None,
-        path=None,
+        body: BaseModel | None = None,
+        query: BaseModel | None = None,
+        path: BaseModel | None = None,
+        response: BaseModel | None = None,
     ):
         self.errors = errors if errors is not None else []
         self.body = body
         self.query = query
         self.path = path
+        self.response = response
 
     def generate_parameter(self, parameter_location: ParameterLocation):
         data = None
@@ -50,8 +52,10 @@ class DocsMetadata:
             data = self.query
         elif parameter_location == ParameterLocation.PATH:
             data = self.path
+        elif parameter_location == ParameterLocation.BODY:
+            data = self.body
         else:
-            raise Exception("Invalid parameter location!")
+            raise Exception(f"Invalid parameter location: {parameter_location}!")
 
         if data and isclass(data) and issubclass(data, BaseModel):
             for _, field in data.__fields__.items():
@@ -74,12 +78,13 @@ class DocsMetadata:
 
 def docs(
     errors: list[HttpError | Type[HttpError]] | None = None,
-    body=None,
-    query=None,
-    path=None,
+    body: BaseModel | None = None,
+    query: BaseModel | None = None,
+    path: BaseModel | None = None,
+    response: BaseModel | None = None,
 ):
     def docs_decorator(func):
-        func.docs_metadata = DocsMetadata(errors=errors, body=body, query=query, path=path)
+        func.docs_metadata = DocsMetadata(errors=errors, body=body, query=query, path=path, response=response)
         return func
 
     return docs_decorator
