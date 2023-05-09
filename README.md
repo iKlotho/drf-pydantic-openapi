@@ -50,7 +50,7 @@ class CustomBookModel(RefType("service_B", "BookModel")):
         # Remove field from referenced type
         ref_exclude = ("author",)
         # Rename field
-        ref_rename = ("book_name", "name")
+        ref_rename = (("book_name", "name"),)
         
 class PaginatedBookModel(BaseModel):
     total: int
