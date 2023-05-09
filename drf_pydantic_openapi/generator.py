@@ -120,7 +120,6 @@ class Document(BaseSchemaGenerator):
     def generate_docs(self, paths: list[Path]):
         docs = PathItem()
         for path in paths:
-            print(f"{path=}")
             if operation := self.generate_operation(path.name, path.method, path.view):
                 setattr(docs, path.method.lower(), operation)
         return docs
