@@ -2,6 +2,7 @@ import re
 from collections import OrderedDict
 from typing import ClassVar, Iterable, Type
 
+from loguru import logger
 from pydantic import BaseModel, create_model
 
 from .settings import config
@@ -67,7 +68,7 @@ class RefTypeFactory:
                     if ref_source := config.get_source(model._ref_source):
                         ref_component = ref_source.components_[model._ref_model_name]
                         if not isinstance(ref_component, dict):
-                            print(f"Cant extend type: {type(ref_component)}")
+                            logger.warning(f"Cant extend type: {type(ref_component)}")
                             return
 
                         ref_component = ref_component.copy()
