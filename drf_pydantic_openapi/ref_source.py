@@ -13,8 +13,11 @@ class RefSource:
     url: str
     schemas_: dict = Field(default={}, repr=False)
     components_: dict = Field(default={}, repr=False)
+    initialized: bool = Field(default=False, repr=False)
 
-    def __post_init__(self):
+    def init(self):
+        if self.initialized:
+            return
         r = requests.get(self.url)
         data = r.json()
         self.schemas_ = data["components"]["schemas"]
@@ -22,6 +25,7 @@ class RefSource:
         for k, v in self.schemas_.items():
             self.extend_refs(v)
             self.components_.setdefault(k, v)
+        self.initialized = True
 
     def extend_refs(self, data: dict):
         # Replace $refs with definition

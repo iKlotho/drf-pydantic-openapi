@@ -1,4 +1,5 @@
 from django.conf import settings
+from loguru import logger
 from pydantic import BaseModel, Field
 
 from .ref_source import RefSource
@@ -10,7 +11,11 @@ class Config(BaseModel):
     def get_source(self, name: str) -> RefSource | None:
         """Find source by given source name"""
         if ref_source := self.ref_sources.get(name):
-            return ref_source
+            try:
+                ref_source.init()
+                return ref_source
+            except Exception as e:
+                logger.warning(f"Error while initializing the {name} source: {str(e)}")
 
 
 USER_SETTINGS = getattr(settings, "DRF_PYDANTIC_OPENAPI", {"REF_SOURCES": {}})
