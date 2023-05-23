@@ -2,7 +2,6 @@ import inspect
 from collections import defaultdict
 from dataclasses import dataclass
 from inspect import isclass
-from typing import NamedTuple, Type
 
 from openapi_schema_pydantic import (
     Info,
@@ -12,7 +11,6 @@ from openapi_schema_pydantic import (
     PathItem,
     RequestBody,
     Response,
-    Schema,
 )
 from openapi_schema_pydantic.util import (
     PydanticSchema,
@@ -86,7 +84,6 @@ class Document(BaseSchemaGenerator):
         view_func = getattr(view, method, getattr(view, self.method_mapping[method], None))
 
         if not view_func:
-            print(f"{str(view)} object has no attribute {method}")
             return
 
         request_body = None
