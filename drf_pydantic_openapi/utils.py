@@ -8,6 +8,7 @@ import docstring_parser
 from openapi_schema_pydantic import Parameter, Schema
 from openapi_schema_pydantic.util import PydanticSchema
 from pydantic import BaseModel
+from rest_framework import exceptions
 
 from .errors import HttpError
 
@@ -112,3 +113,11 @@ def extract_ref_source(ref: str):
     if match:
         model_name = match.group(1)
         return model_name
+
+
+def get_view_version(view) -> str:
+    try:
+        version, _ = view.determine_version(view.request, **view.kwargs)
+        return str(version)
+    except exceptions.NotAcceptable:
+        return ""

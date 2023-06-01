@@ -2,6 +2,7 @@ import inspect
 from collections import defaultdict
 from dataclasses import dataclass
 from inspect import isclass
+from django.urls import get_resolver
 
 from openapi_schema_pydantic import (
     Info,
@@ -19,7 +20,11 @@ from openapi_schema_pydantic.util import (
 from pydantic import BaseModel
 from rest_framework.schemas.generators import BaseSchemaGenerator
 
-from .utils import Docstring, ParameterLocation
+from .utils import (
+    Docstring,
+    ParameterLocation,
+    get_view_version,
+)
 
 
 @dataclass
@@ -34,8 +39,8 @@ class Path:
 
 
 class Document(BaseSchemaGenerator):
-    def __init__(self, *args, **kwargs) -> None:
-        self.inspector = None
+    def __init__(self, api_version: str, *args, **kwargs) -> None:
+        self.api_version = api_version
         self.openapi = OpenAPI(info=Info(title="test", version="3.0.0"), paths={})
         self.responses = {}
         self.method_mapping = {
@@ -123,9 +128,14 @@ class Document(BaseSchemaGenerator):
 
     def get_schema(self, request=None, public=False):
         self._initialise_endpoints()
-        _, view_endpoints = self._get_paths_and_endpoints(None)
+        _, view_endpoints = self._get_paths_and_endpoints(request)
         paths = defaultdict(list)
         for path, method, view in view_endpoints:
+            if self.api_version:
+                # resolver required by NamespaceVersioning
+                view.request.resolver_match = get_resolver().resolve(path)
+                if get_view_version(view) != self.api_version:
+                    continue
             paths[path].append(Path(name=path, method=method, view=view))
 
         for path in paths.keys():

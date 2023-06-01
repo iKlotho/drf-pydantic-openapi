@@ -1,8 +1,8 @@
 from django.urls import path
 
-from .views import open_api_json, redoc
+from .views import DrfPydanticRedocView, DrfPydanticSchemaView
 
 urlpatterns = [
-    path("docs", redoc, name="dpo_docs"),
-    path("schema.json", open_api_json, name="dpo_schema"),
+    path("docs", DrfPydanticRedocView.as_view(), name="dpo_docs"),
+    path("schema.json", DrfPydanticSchemaView.as_view(), name="dpo_schema"),
 ]
