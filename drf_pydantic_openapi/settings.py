@@ -7,6 +7,7 @@ from .ref_source import RefSource
 
 class Config(BaseModel):
     ref_sources: dict[str, RefSource] = Field(default={}, alias="REF_SOURCES")
+    tag_path_regex: str = Field(default=None, alias="TAG_PATH_REGEX")
 
     def get_source(self, name: str) -> RefSource | None:
         """Find source by given source name"""

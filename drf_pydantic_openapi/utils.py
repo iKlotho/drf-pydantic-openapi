@@ -12,6 +12,14 @@ from rest_framework import exceptions
 
 from .errors import HttpError
 
+method_mapping = {
+    "get": "retrieve",
+    "post": "create",
+    "put": "update",
+    "patch": "partial_update",
+    "delete": "destroy",
+}
+
 _builtin_openapi_map = {
     builtins.bool: "boolean",
     builtins.str: "string",

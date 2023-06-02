@@ -10,17 +10,17 @@ from .generator import Document
 
 
 class DrfPydanticSchemaView(APIView):
-    # TODO: get these from settings
     authentication_classes = {}
     permission_classes = {}
     api_version = None
+    tag_path_regex = None
 
     def get(self, request, *args, **kwargs):
         version = self.api_version
         if hasattr(request, "version"):
             version = request.version
 
-        document = Document(api_version=version)
+        document = Document(api_version=version, tag_path_regex=self.tag_path_regex)
         schema = document.get_schema(request=request)
         return Response(json.loads(schema), headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
