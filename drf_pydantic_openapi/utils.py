@@ -5,7 +5,7 @@ from inspect import isclass
 from typing import Type
 
 import docstring_parser
-from openapi_schema_pydantic import Parameter, Schema
+from openapi_schema_pydantic import Parameter, PathItem, Schema
 from openapi_schema_pydantic.util import PydanticSchema
 from pydantic import BaseModel
 from rest_framework import exceptions
@@ -129,3 +129,8 @@ def get_view_version(view) -> str:
         return str(version)
     except exceptions.NotAcceptable:
         return ""
+
+
+class PathItemEx(PathItem):
+    def is_empty(self):
+        return not (self.get or self.post or self.delete or self.head or self.put)

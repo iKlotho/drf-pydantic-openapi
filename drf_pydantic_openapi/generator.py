@@ -10,7 +10,6 @@ from openapi_schema_pydantic import (
     MediaType,
     OpenAPI,
     Operation,
-    PathItem,
     RequestBody,
     Response,
 )
@@ -23,14 +22,15 @@ from rest_framework.schemas.generators import BaseSchemaGenerator
 
 from .path import Path
 from .settings import config
-from .utils import Docstring, ParameterLocation, get_view_version, method_mapping
+from .utils import Docstring, ParameterLocation, PathItemEx, get_view_version, method_mapping
 
 
 class Document(BaseSchemaGenerator):
     def __init__(self, api_version: str, tag_path_regex: str | None, *args, **kwargs) -> None:
         self.api_version = api_version
         self.tag_path_regex = tag_path_regex
-        self.openapi = OpenAPI(info=Info(title="test", version="3.0.0"), paths={})
+        # TODO: change info
+        self.openapi = OpenAPI(openapi=config.openapi_version, info=Info(title="DPO API", version="0.0.4"), paths={})
         self.responses = {}
         super().__init__(*args, **kwargs)
 
@@ -117,10 +117,14 @@ class Document(BaseSchemaGenerator):
         )
 
     def generate_docs(self, paths: list[Path]):
-        docs = PathItem()
+        docs = PathItemEx()
         for path in paths:
             if operation := self.generate_operation(path):
-                setattr(docs, path.method.lower(), operation)
+                if not config.include_empty_endpoints:
+                    if operation.responses:
+                        setattr(docs, path.method.lower(), operation)
+                else:
+                    setattr(docs, path.method.lower(), operation)
         return docs
 
     def get_schema(self, request=None, public=False):
@@ -145,8 +149,9 @@ class Document(BaseSchemaGenerator):
             )
 
         for path in paths.keys():
-            docs = self.generate_docs(paths[path])
-            self.openapi.paths[path] = docs
+            if docs := self.generate_docs(paths[path]):
+                if not docs.is_empty():
+                    self.openapi.paths[path] = docs
 
         self.openapi = construct_open_api_with_schema_class(self.openapi)
         return self.openapi.json(by_alias=True, exclude_none=True)

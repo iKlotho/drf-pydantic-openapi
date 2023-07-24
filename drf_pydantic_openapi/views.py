@@ -9,20 +9,34 @@ from rest_framework.views import APIView
 from .generator import Document
 
 
-class DrfPydanticSchemaView(APIView):
-    authentication_classes = {}
-    permission_classes = {}
-    api_version = None
-    tag_path_regex = None
+def get_schema_view(
+    api_version=None,
+    tag_path_regex=None,
+    permission_classes=None,
+    authentication_classes=None,
+):
+    _api_version = api_version
+    _tag_path_regex = tag_path_regex
+    _permission_classes = permission_classes if permission_classes else {}
+    _authentication_classes = authentication_classes if authentication_classes else {}
 
-    def get(self, request, *args, **kwargs):
-        version = self.api_version
-        if hasattr(request, "version"):
-            version = request.version
+    class DrfPydanticSchemaView(APIView):
+        authentication_classes = _authentication_classes
+        permission_classes = _permission_classes
 
-        document = Document(api_version=version, tag_path_regex=self.tag_path_regex)
-        schema = document.get_schema(request=request)
-        return Response(json.loads(schema), headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+        def get(self, request, *args, **kwargs):
+            version = _api_version
+            if hasattr(request, "version"):
+                version = request.version
+
+            document = Document(
+                api_version=version,
+                tag_path_regex=_tag_path_regex,
+            )
+            schema = document.get_schema(request=request)
+            return Response(json.loads(schema), headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+
+    return DrfPydanticSchemaView
 
 
 class DrfPydanticRedocView(TemplateView):
