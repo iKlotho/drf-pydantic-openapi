@@ -55,7 +55,8 @@ class DocsMetadata:
         self.path = path
         self.response = response
 
-    def generate_parameter(self, parameter_location: ParameterLocation):
+    def generate_parameters(self, parameter_location: ParameterLocation):
+        params = []
         data = None
         if parameter_location == ParameterLocation.QUERY:
             data = self.query
@@ -76,13 +77,16 @@ class DocsMetadata:
 
                 description = field.field_info.description
 
-                return Parameter(
-                    name=field.name,
-                    description=description if description else "",
-                    param_in=parameter_location,
-                    param_schema=schema,
-                    required=field.required,
+                params.append(
+                    Parameter(
+                        name=field.name,
+                        description=description if description else "",
+                        param_in=parameter_location,
+                        param_schema=schema,
+                        required=field.required,
+                    )
                 )
+        return params
 
 
 def docs(

@@ -101,10 +101,10 @@ class Document(BaseSchemaGenerator):
                 request_body = RequestBody(content={"application/json": MediaType(schema=schema)})
 
         parameters = []
-        if docs and (path_param := docs.generate_parameter(ParameterLocation.PATH)):
-            parameters.append(path_param)
-        if docs and (query_param := docs.generate_parameter(ParameterLocation.QUERY)):
-            parameters.append(query_param)
+        if docs and (path_params := docs.generate_parameters(ParameterLocation.PATH)):
+            parameters.extend(path_params)
+        if docs and (query_params := docs.generate_parameters(ParameterLocation.QUERY)):
+            parameters.extend(query_params)
 
         return Operation(
             operation_id=path.get_operation_id(),
