@@ -12,6 +12,7 @@ from openapi_schema_pydantic import (
     Operation,
     RequestBody,
     Response,
+    Server,
 )
 from openapi_schema_pydantic.util import (
     PydanticSchema,
@@ -30,7 +31,13 @@ class Document(BaseSchemaGenerator):
         self.api_version = api_version
         self.tag_path_regex = tag_path_regex
         # TODO: change info
-        self.openapi = OpenAPI(openapi=config.openapi_version, info=Info(title="DPO API", version="0.0.4"), paths={})
+        servers = [Server(url=server) for server in config.servers]
+        self.openapi = OpenAPI(
+            openapi=config.openapi_version,
+            info=Info(title=config.title, version=config.api_version, description=config.description),
+            paths={},
+            servers=servers,
+        )
         self.responses = {}
         super().__init__(*args, **kwargs)
 

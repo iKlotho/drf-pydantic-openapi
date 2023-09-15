@@ -9,7 +9,11 @@ class Config(BaseModel):
     ref_sources: dict[str, RefSource] = Field(default={}, alias="REF_SOURCES")
     tag_path_regex: str = Field(default=None, alias="TAG_PATH_REGEX")
     openapi_version: str = Field(default="3.1.0", alias="OPENAPI_VERSION")
+    api_version: str = Field(default="1.0.0", alias="API_VERSION")
     include_empty_endpoints: bool = Field(default=True, alias="INCLUDE_EMPTY_ENDPOINTS")
+    servers: list[str] = Field(default=list, alias="SERVERS")
+    title: str = Field(default="DPO Api", alias="TITLE")
+    description: str = Field(default="", alias="DESCRIPTION")
 
     def get_source(self, name: str) -> RefSource | None:
         """Find source by given source name"""
