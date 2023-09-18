@@ -1,6 +1,7 @@
 # See flask-typed(https://github.com/mfnd/flask-typed)
 import openapi_schema_pydantic as openapi
 from pydantic import BaseModel
+from openapi_schema_pydantic.util import PydanticSchema
 
 
 class HttpError(Exception):
@@ -25,21 +26,11 @@ class HttpError(Exception):
         return self.response.dict()
 
     @classmethod
-    def schema(cls) -> openapi.Schema:
-        return openapi.Schema.parse_obj(cls.ResponseModel.schema())
+    def schema(cls) -> PydanticSchema:
+        return PydanticSchema(schema_class=cls.ResponseModel)
 
 
-class MessageHttpError(HttpError):
-    message: str = "Error"
-
-    def __init_subclass__(cls, **kwargs):
-        class ResponseModel(BaseModel):
-            message: str | None = cls.message
-
-        cls.ResponseModel = ResponseModel
-
-
-class BadRequestError(MessageHttpError):
+class BadRequestError(HttpError):
     status_code = 400
     message = "Bad request"
 
