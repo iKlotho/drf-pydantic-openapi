@@ -12,6 +12,7 @@ from openapi_schema_pydantic import (
     Operation,
     RequestBody,
     Response,
+    SecurityScheme,
     Server,
 )
 from openapi_schema_pydantic.util import (
@@ -146,6 +147,7 @@ class Document(BaseSchemaGenerator):
                 view.request.resolver_match = get_resolver().resolve(path)
                 if get_view_version(view) != self.api_version:
                     continue
+            path = path.replace(path_prefix, "/")
             paths[path].append(
                 Path(
                     path=path,
@@ -161,4 +163,8 @@ class Document(BaseSchemaGenerator):
                     self.openapi.paths[path] = docs
 
         self.openapi = construct_open_api_with_schema_class(self.openapi)
+
+        if config.security_definitions:
+            self.openapi.components.securitySchemes = config.security_definitions
+            self.openapi.security = [{security_method: []} for security_method in config.security_definitions.keys()]
         return self.openapi.json(by_alias=True, exclude_none=True)

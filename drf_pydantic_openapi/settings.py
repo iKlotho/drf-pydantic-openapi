@@ -14,6 +14,7 @@ class Config(BaseModel):
     servers: list[str] = Field(default=list, alias="SERVERS")
     title: str = Field(default="DPO Api", alias="TITLE")
     description: str = Field(default="", alias="DESCRIPTION")
+    security_definitions: dict = Field(default={}, alias="SECURITY_DEFINITIONS")
 
     def get_source(self, name: str) -> RefSource | None:
         """Find source by given source name"""
