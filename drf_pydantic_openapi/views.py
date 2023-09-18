@@ -62,3 +62,16 @@ class DrfPydanticRapidocView(TemplateView):
         schema_url = f"{self.api_version}:{self.url_name}" if self.api_version else self.url_name
         context["schema_url"] = reverse(schema_url)
         return context
+
+
+class DrfPydanticSwaggerView(TemplateView):
+    api_version = None
+    template_name = "drf_pydantic_openapi/swagger.html"
+    url_name = "dpo_schema"
+    rapidoc_settings = {}
+
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        schema_url = f"{self.api_version}:{self.url_name}" if self.api_version else self.url_name
+        context["schema_url"] = reverse(schema_url)
+        return context
