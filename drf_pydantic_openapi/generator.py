@@ -7,7 +7,7 @@ from inspect import isclass
 from django.urls import get_resolver
 
 # TODO: check desired openapi version and import accordingly
-from openapi_pydantic.v3.v3_0_3 import (
+from openapi_pydantic import (
     Info,
     MediaType,
     OpenAPI,
@@ -16,10 +16,7 @@ from openapi_pydantic.v3.v3_0_3 import (
     Response,
     Server,
 )
-from openapi_pydantic.v3.v3_0_3.util import (
-    PydanticSchema,
-    construct_open_api_with_schema_class,
-)
+from openapi_pydantic.util import PydanticSchema, construct_open_api_with_schema_class
 from pydantic import BaseModel
 from rest_framework.schemas.generators import BaseSchemaGenerator
 

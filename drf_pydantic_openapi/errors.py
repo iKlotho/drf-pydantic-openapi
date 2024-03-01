@@ -1,5 +1,5 @@
 # See flask-typed(https://github.com/mfnd/flask-typed)
-from openapi_pydantic.v3.v3_0_3.util import PydanticSchema
+from openapi_pydantic.util import PydanticSchema
 from pydantic import BaseModel
 
 

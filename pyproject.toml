@@ -13,6 +13,7 @@ djangorestframework = ">=3.13"
 docstring-parser = ">=0.15"
 loguru = ">=0.5.3"
 openapi-pydantic = "0.4.0"
+jsonref = "^1.1.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.3.0"
@@ -42,7 +43,7 @@ exclude = [
     "migrations",
     # No need to traverse test files
     "tests",
-    # No need to traverse contants files
+    # No need to traverse constants files
     "constants.py",
 ]
 

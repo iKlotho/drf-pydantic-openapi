@@ -4,8 +4,8 @@ from enum import Enum
 from inspect import isclass
 
 import docstring_parser
-from openapi_pydantic.v3.v3_0_3 import Parameter, PathItem, Schema
-from openapi_pydantic.v3.v3_0_3.util import PydanticSchema
+from openapi_pydantic import Parameter, PathItem, Schema
+from openapi_pydantic.util import PydanticSchema
 from pydantic import BaseModel
 from rest_framework import exceptions
 
