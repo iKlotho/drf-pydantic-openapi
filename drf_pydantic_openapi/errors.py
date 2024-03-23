@@ -1,7 +1,6 @@
 # See flask-typed(https://github.com/mfnd/flask-typed)
-import openapi_schema_pydantic as openapi
+from openapi_pydantic.util import PydanticSchema
 from pydantic import BaseModel
-from openapi_schema_pydantic.util import PydanticSchema
 
 
 class HttpError(Exception):
@@ -20,10 +19,10 @@ class HttpError(Exception):
         self.response = cls.ResponseModel(**kwargs)
 
     def json(self) -> str:
-        return self.response.json()
+        return self.response.model_dump_json()
 
     def dict(self) -> str:
-        return self.response.dict()
+        return self.response.model_dump()
 
     @classmethod
     def schema(cls) -> PydanticSchema:

@@ -5,26 +5,30 @@ from collections import defaultdict
 from inspect import isclass
 
 from django.urls import get_resolver
-from openapi_schema_pydantic import (
+
+# TODO: check desired openapi version and import accordingly
+from openapi_pydantic import (
     Info,
     MediaType,
     OpenAPI,
     Operation,
     RequestBody,
     Response,
-    SecurityScheme,
     Server,
 )
-from openapi_schema_pydantic.util import (
-    PydanticSchema,
-    construct_open_api_with_schema_class,
-)
+from openapi_pydantic.util import PydanticSchema, construct_open_api_with_schema_class
 from pydantic import BaseModel
 from rest_framework.schemas.generators import BaseSchemaGenerator
 
 from .path import Path
 from .settings import config
-from .utils import Docstring, ParameterLocation, PathItemEx, get_view_version, method_mapping
+from .utils import (
+    Docstring,
+    ParameterLocation,
+    PathItemEx,
+    get_view_version,
+    method_mapping,
+)
 
 
 class Document(BaseSchemaGenerator):
@@ -49,7 +53,7 @@ class Document(BaseSchemaGenerator):
 
     def find_path_prefix(self, view_endpoints):
         if self._tag_path_regex is None:
-            non_trivial_prefix = len(set([view.__class__ for _, _, view in view_endpoints])) > 1
+            non_trivial_prefix = len({view.__class__ for _, _, view in view_endpoints}) > 1
             if non_trivial_prefix:
                 path_prefix = os.path.commonpath([path for path, _, _ in view_endpoints])
                 path_prefix = re.escape(path_prefix)  # guard for RE special chars in path
@@ -73,11 +77,11 @@ class Document(BaseSchemaGenerator):
                 description = ""
                 if docstring and (raises := docstring.raises.get(error.__name__)):
                     description = raises.description
-                response[error.status_code] = Response(
+
+                response[str(error.status_code)] = Response(
                     description=description,
                     content={"application/json": MediaType(schema=error.schema())},
                 )
-
         if return_type is not inspect._empty:
             if isclass(return_type) and issubclass(return_type, BaseModel):
                 schema = PydanticSchema(schema_class=return_type)
@@ -115,7 +119,7 @@ class Document(BaseSchemaGenerator):
             parameters.extend(query_params)
 
         return Operation(
-            operation_id=path.get_operation_id(),
+            operationId=path.get_operation_id(),
             requestBody=request_body,
             tags=path.get_tags(),
             responses=self.generate_responses(docstring, view_func),
@@ -147,14 +151,13 @@ class Document(BaseSchemaGenerator):
                 view.request.resolver_match = get_resolver().resolve(path)
                 if get_view_version(view) != self.api_version:
                     continue
-            path = path.replace(path_prefix, "/")
             paths[path].append(
                 Path(
                     path=path,
                     path_prefix=path_prefix,
                     method=method,
                     view=view,
-                )
+                ),
             )
 
         for path in paths.keys():
@@ -167,4 +170,4 @@ class Document(BaseSchemaGenerator):
         if config.security_definitions:
             self.openapi.components.securitySchemes = config.security_definitions
             self.openapi.security = [{security_method: []} for security_method in config.security_definitions.keys()]
-        return self.openapi.json(by_alias=True, exclude_none=True)
+        return self.openapi.model_dump_json(by_alias=True, exclude_none=True)
