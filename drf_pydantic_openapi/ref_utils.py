@@ -59,12 +59,19 @@ def json_schema_extra(schema: dict, model: BaseModel) -> None:
 
         ref_component = ref_component.copy()
         ref_properties = ref_component.get("properties", {})
+        ref_required = ref_component.get("required", [])
 
         for field in exclude_fields:
             delete_key_from_dict(ref_properties, field)
+            if field in ref_required:
+                ref_required.remove(field)
 
         for rename_obj in rename_fields:
             original_name, new_name = rename_obj
+            if original_name in ref_required:
+                ref_required.remove(original_name)
+                ref_required.append(new_name)
+
             if original_value := ref_properties.pop(original_name, None):
                 original_value["title"] = " ".join(p.capitalize() for p in new_name.split("_"))
                 ref_properties[new_name] = original_value
@@ -77,6 +84,7 @@ def json_schema_extra(schema: dict, model: BaseModel) -> None:
         properties.update(**ref_properties)
         # Sort properties by key, can be removed
         schema["properties"] = OrderedDict(sorted(properties.items(), key=lambda t: t[0]))
+        schema["required"] = list(set(schema.get("required", []) + ref_required))
 
     else:
         logger.warning(f"Couldn't extend the model. Ref name: {model._ref_model_name}, source: {model._ref_source}")
