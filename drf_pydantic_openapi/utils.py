@@ -1,10 +1,15 @@
 import builtins
 import re
+from datetime import date, datetime, time
 from enum import Enum
 from inspect import isclass
+from types import NoneType, UnionType
+from typing import Annotated, Any, get_args, get_origin
+from uuid import UUID
 
 import docstring_parser
-from openapi_pydantic import Parameter, PathItem, Schema
+import openapi_pydantic as openapi
+from openapi_pydantic import Parameter, PathItem
 from openapi_pydantic.util import PydanticSchema
 from pydantic import BaseModel
 from rest_framework import exceptions
@@ -20,15 +25,38 @@ method_mapping = {
 }
 
 _builtin_openapi_map = {
-    builtins.bool: "boolean",
-    builtins.str: "string",
-    builtins.int: "integer",
-    builtins.float: "number",
+    builtins.bool: openapi.Schema(type=openapi.DataType.BOOLEAN),
+    builtins.str: openapi.Schema(type=openapi.DataType.STRING),
+    builtins.int: openapi.Schema(type=openapi.DataType.INTEGER),
+    builtins.float: openapi.Schema(type=openapi.DataType.NUMBER),
+    datetime: openapi.Schema(type=openapi.DataType.STRING, format="date-time"),
+    date: openapi.Schema(type=openapi.DataType.STRING, format="date"),
+    time: openapi.Schema(type=openapi.DataType.STRING, format="time"),
+    UUID: openapi.Schema(type=openapi.DataType.STRING, format="uuid"),
 }
 
 
-def get_builtin_type(ty: type):
-    return _builtin_openapi_map.get(ty)
+def get_builtin_type(ty: type) -> openapi.Schema | None:
+    ty = get_actual_type(ty)
+    if schema := _builtin_openapi_map.get(ty):
+        return schema.model_copy()
+    return None
+
+
+def get_actual_type(param_type: type) -> Any | type:
+    actual_type = None
+    origin_type = get_origin(param_type)
+    if origin_type is UnionType:
+        for alternate_type in get_args(param_type):
+            if alternate_type is NoneType:
+                continue
+            if actual_type is not None:
+                raise Exception("Multiple argument types are provided")
+            actual_type = alternate_type
+    else:
+        actual_type = param_type
+
+    return actual_type
 
 
 class ParameterLocation(str, Enum):
@@ -69,10 +97,17 @@ class DocsMetadata:
         if data and isclass(data) and issubclass(data, BaseModel):
             for name, field_info in data.model_fields.items():
                 field_annotation = field_info.annotation
+                if field_annotation is None:
+                    raise TypeError(f"No type annotation is provided for parameter: {name}")
+
+                if get_origin(field_annotation) == Annotated:
+                    metadata = get_args(field_annotation)
+                    field_annotation = metadata[0]
+
                 if isclass(field_annotation) and issubclass(field_annotation, BaseModel):
                     schema = PydanticSchema(schema_class=field_annotation)
                 else:
-                    schema = Schema(type=get_builtin_type(field_annotation))
+                    schema = get_builtin_type(field_annotation)
 
                 description = field_info.description
 
