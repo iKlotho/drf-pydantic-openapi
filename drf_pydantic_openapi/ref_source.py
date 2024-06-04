@@ -14,10 +14,10 @@ class RefSource:
     components_: dict = Field(default={}, repr=False)
     initialized: bool = Field(default=False, repr=False)
 
-    def init(self):
-        if self.initialized:
+    def init(self, force: bool = False):
+        if not force and self.initialized:
             return
-        r = requests.get(self.url)
+        r = requests.get(self.url, timeout=5)
         data = jsonref.loads(r.text)
         # self.replace_refs_with_empty_dict(data)
         self.schemas_ = data["components"]["schemas"]

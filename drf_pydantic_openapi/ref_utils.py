@@ -1,3 +1,4 @@
+import copy
 from collections import OrderedDict
 from collections.abc import Iterable
 from typing import ClassVar
@@ -54,10 +55,10 @@ def json_schema_extra(schema: dict, model: BaseModel) -> None:
     if ref_source := config.get_source(model._ref_source):
         ref_component = ref_source.components_[model._ref_model_name]
         if not isinstance(ref_component, dict):
-            logger.debug(f"Can't extend type: {type(ref_component)}")
+            logger.warning(f"Can't extend type: {type(ref_component)} with model {model._ref_model_name}")
             return
 
-        ref_component = ref_component.copy()
+        ref_component = copy.deepcopy(ref_component)
         ref_properties = ref_component.get("properties", {})
         ref_required = ref_component.get("required", [])
 

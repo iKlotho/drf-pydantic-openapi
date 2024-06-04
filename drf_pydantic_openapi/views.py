@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any
 
 from django.views.generic import TemplateView
 from rest_framework.response import Response
@@ -7,6 +7,7 @@ from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 
 from .generator import Document
+from .settings import config
 
 
 def get_schema_view(
@@ -29,6 +30,7 @@ def get_schema_view(
             if hasattr(request, "version"):
                 version = request.version
 
+            config.initialize_sources()
             document = Document(
                 api_version=version,
                 tag_path_regex=_tag_path_regex,
@@ -44,7 +46,7 @@ class DrfPydanticRedocView(TemplateView):
     template_name = "drf_pydantic_openapi/redoc.html"
     url_name = "dpo_schema"
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         schema_url = f"{self.api_version}:{self.url_name}" if self.api_version else self.url_name
         context["schema_url"] = reverse(schema_url)
@@ -57,7 +59,7 @@ class DrfPydanticRapidocView(TemplateView):
     url_name = "dpo_schema"
     rapidoc_settings = {}
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         schema_url = f"{self.api_version}:{self.url_name}" if self.api_version else self.url_name
         context["schema_url"] = reverse(schema_url)
@@ -70,7 +72,7 @@ class DrfPydanticSwaggerView(TemplateView):
     url_name = "dpo_schema"
     rapidoc_settings = {}
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         schema_url = f"{self.api_version}:{self.url_name}" if self.api_version else self.url_name
         context["schema_url"] = reverse(schema_url)
