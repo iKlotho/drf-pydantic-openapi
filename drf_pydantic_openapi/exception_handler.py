@@ -7,11 +7,9 @@ from .errors import HttpError
 def typed_exception_handler(exc, context):
     response = exception_handler(exc, context)
     if isinstance(exc, pydantic.ValidationError):
-        data = {"detail": exc.errors()}
-        response = Response(data, status=422)
+        response = Response(exc.errors(include_input=False, include_url=False), status=422)
 
     if isinstance(exc, HttpError):
-        data = {"detail": exc.dict()}
-        response = Response(data, status=exc.status_code)
+        response = Response(exc.json(), status=exc.status_code)
 
     return response

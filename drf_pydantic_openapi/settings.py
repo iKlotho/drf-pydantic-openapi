@@ -25,6 +25,10 @@ class Config(BaseModel):
             except Exception as e:
                 logger.warning(f"Error while initializing the {name} source: {str(e)}")
 
+    def initialize_sources(self):
+        for _, ref_source in self.ref_sources.items():
+            ref_source.init(force=True)
+
 
 USER_SETTINGS = getattr(settings, "DRF_PYDANTIC_OPENAPI", {"REF_SOURCES": {}})
 
