@@ -60,6 +60,7 @@ def json_schema_extra(schema: dict, model: BaseModel) -> None:
 
         ref_component = copy.deepcopy(ref_component)
         ref_properties = ref_component.get("properties", {})
+        ref_additional_properties = ref_component.get("additionalProperties", {})
         ref_required = ref_component.get("required", [])
 
         for field in exclude_fields:
@@ -86,6 +87,8 @@ def json_schema_extra(schema: dict, model: BaseModel) -> None:
         # Sort properties by key, can be removed
         schema["properties"] = OrderedDict(sorted(properties.items(), key=lambda t: t[0]))
         schema["required"] = list(set(schema.get("required", []) + ref_required))
+        if ref_additional_properties:
+            schema["additionalProperties"] = ref_additional_properties
 
     else:
         logger.warning(f"Couldn't extend the model. Ref name: {model._ref_model_name}, source: {model._ref_source}")
