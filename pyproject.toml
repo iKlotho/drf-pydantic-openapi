@@ -1,10 +1,10 @@
 [tool.poetry]
 name = "drf-pydantic-openapi"
-version = "0.5.6"
+version = "0.6"
 description = "OpenAPI (v3) schema generation via Pydantic models using Django REST Framework."
 authors = ["iKlotho <umutkahrimanedu@gmail.com>"]
 readme = "README.md"
-packages = [{include = "drf_pydantic_openapi"}]
+packages = [{ include = "drf_pydantic_openapi" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -25,7 +25,7 @@ flake8 = ">=6.0.0"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-include = ['drf_pydantic_openapi/templates/*']
+include = ['drf_pydantic_openapi/templates/*', 'drf_pydantic_openapi/static/*']
 
 
 [tool.flake8]

@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <head>
     <title>Docs</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/swagger-ui.css">
+    <link rel="stylesheet" href="{% static 'drf_pydantic_openapi/css/swagger-ui.css' %}">
 </head>
 
 <body>
@@ -10,7 +10,7 @@
         Loading....
     </div>
 </body>
-<script src="https://unpkg.com/swagger-ui-dist@latest/swagger-ui-bundle.js"></script>
+<script src="{% static 'drf_pydantic_openapi/js/swagger-ui-bundle.js' %}"></script>
 <script>
     var swaggerUIOptions = {
       url: "{{schema_url}}",

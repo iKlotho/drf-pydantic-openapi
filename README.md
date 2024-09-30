@@ -13,10 +13,11 @@ Generate OpenAPI schema with DRF code using pydantic models. Supports referencin
  - Available endpoints
     - `/schema.json` 
     - `/docs`
+    - `/redoc`
 
-# Reference another openapi source
+# Reference OpenAPI source
 
-Add the following setting to your projects `settings.py`. This will allow the module to access to the other openapi components defined in seperate projects.
+Add the following setting to your projects `settings.py`. This will allow the module to access to the other OpenAPI components defined in seperate projects.
 ```python
 # settings.py
 
