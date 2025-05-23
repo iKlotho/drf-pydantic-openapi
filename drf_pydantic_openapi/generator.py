@@ -3,8 +3,11 @@ import os
 import re
 from collections import defaultdict
 from inspect import isclass
+from types import UnionType
+from typing import get_args, get_origin
 
 from django.urls import get_resolver
+from loguru import logger
 
 # TODO: check desired openapi version and import accordingly
 from openapi_pydantic import (
@@ -14,6 +17,7 @@ from openapi_pydantic import (
     Operation,
     RequestBody,
     Response,
+    Schema,
     Server,
 )
 from openapi_pydantic.util import PydanticSchema, construct_open_api_with_schema_class
@@ -82,16 +86,38 @@ class Document(BaseSchemaGenerator):
                     description=description,
                     content={"application/json": MediaType(schema=error.schema())},
                 )
-        if return_type is not inspect._empty:
-            if isclass(return_type) and issubclass(return_type, BaseModel):
+
+        if return_type is not inspect.Signature.empty:
+            origin_type = get_origin(return_type)
+            if origin_type is UnionType:
+                # group by status_code and mime_type
+                types = defaultdict(list)
+                for single_return_type in get_args(return_type):
+                    if isclass(single_return_type) and issubclass(single_return_type, BaseModel):
+                        mime_type = str(single_return_type.model_config.get("mime_type", "application/json"))
+                        status_code = str(single_return_type.model_config.get("status_code", 200))
+                        types[(status_code, mime_type)].append(PydanticSchema(schema_class=single_return_type))
+
+                for (status_code, mime_type), response_type in types.items():
+                    # if multiple responses defined use oneOf otherwise return the single type
+                    media_type_schema = Schema(oneOf=response_type) if len(response_type) > 1 else response_type[0]
+                    response[status_code] = Response(
+                        description="", content={mime_type: MediaType(schema=media_type_schema)},
+                    )
+            elif isclass(return_type) and issubclass(return_type, BaseModel):
+                mime_type = str(return_type.model_config.get("mime_type", "application/json"))
+                status_code = str(return_type.model_config.get("status_code", 200))
                 schema = PydanticSchema(schema_class=return_type)
                 description = ""
-                if docstring and (returns := docstring.returns.get(error.__name__)):
+                if docstring and (returns := docstring.returns.get(return_type.__name__)):
                     description = returns.description
-                response["200"] = Response(
+                response[status_code] = Response(
                     description=description,
-                    content={"application/json": MediaType(schema=schema)},
+                    content={mime_type: MediaType(schema=schema)},
                 )
+            else:
+                logger.warning(f"Unsupported return type {return_type}")
+
         return response
 
     def generate_operation(self, path: Path) -> Operation | None:
