@@ -171,4 +171,4 @@ def get_view_version(view) -> str:
 
 class PathItemEx(PathItem):
     def is_empty(self):
-        return not (self.get or self.post or self.delete or self.head or self.put)
+        return not (self.get or self.post or self.delete or self.head or self.put or self.patch)
