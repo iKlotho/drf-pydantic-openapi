@@ -1,13 +1,13 @@
 # See flask-typed(https://github.com/mfnd/flask-typed)
-from openapi_pydantic.util import PydanticSchema
+from typing import ClassVar
+
 from pydantic import BaseModel
 
 
 class HttpError(Exception):
     mime_type = "application/json"
-
-    class ResponseModel(BaseModel):
-        message: str | None = None
+    ResponseModel: ClassVar[type[BaseModel]]
+    status_code: int
 
     def __init_subclass__(cls, **kwargs):
         if not issubclass(cls.ResponseModel, BaseModel):
@@ -25,20 +25,27 @@ class HttpError(Exception):
         return self.response.model_dump()
 
     @classmethod
-    def schema(cls) -> PydanticSchema:
-        return PydanticSchema(schema_class=cls.ResponseModel)
+    def schema(cls):
+        # schema =  PydanticSchema(schema_class=cls.ResponseModel)
+        model_name = f"{cls.status_code}_ResponseModel"
+        return cls.ResponseModel.model_json_schema(ref_template=f"#/components/schemas/{model_name}")
 
 
-class BadRequestError(HttpError):
+class SimpleHttpError(HttpError):
+    class ResponseModel(BaseModel):
+        message: str | None = None
+
+
+class BadRequestError(SimpleHttpError):
     status_code = 400
     message = "Bad request"
 
 
-class NotFoundError(HttpError):
+class NotFoundError(SimpleHttpError):
     status_code = 404
     message = "Not found"
 
 
-class InternalServerError(HttpError):
+class InternalServerError(SimpleHttpError):
     status_code = 500
     message = "Internal server error"
