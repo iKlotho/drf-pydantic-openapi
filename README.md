@@ -1,8 +1,10 @@
-Generate OpenAPI schema with DRF code using pydantic models. Supports referencing other service's components.
+drf-pydantic-openapi
+
+Generate OpenAPI schema with DRF code using Pydantic models. Supports referencing other services' components.
 
 # Usage
 
-# Add urls to the project
+# Add URLs to the project
 
 ```python
  urlpatters = [
