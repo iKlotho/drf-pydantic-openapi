@@ -122,7 +122,13 @@ class Document(BaseSchemaGenerator):
 
     def generate_operation(self, path: Path) -> Operation | None:
         method = path.method.lower()
-        view_func = getattr(path.view, method, getattr(path.view, method_mapping[method], None))
+        # Prefer view.action so each route picks up its own handler's @docs metadata
+        # APIViews don't set this attribute, so we fall back to the method_mapping lookup
+        action = getattr(path.view, "action", None)
+        if action:
+            view_func = getattr(path.view, action, None)
+        else:
+            view_func = getattr(path.view, method, getattr(path.view, method_mapping[method], None))
 
         if not view_func:
             return
