@@ -39,10 +39,14 @@ class Path:
         # replace dashes as they can be problematic later in code generation
         tokenized_path = [t.replace("-", "_") for t in tokenized_path]
 
-        if self.method == "GET" and is_list_view(self.path, self.method, self.view):
-            action = "list"
-        else:
-            action = method_mapping[self.method.lower()]
+        # For ViewSets, DRF's create_view sets view.action to the bound action name
+        # (covers list/retrieve and any custom @action methods). Prefer it when set.
+        action = getattr(self.view, "action", None)
+        if not action:
+            if self.method == "GET" and is_list_view(self.path, self.method, self.view):
+                action = "list"
+            else:
+                action = method_mapping[self.method.lower()]
 
         if not tokenized_path:
             tokenized_path.append("root")
